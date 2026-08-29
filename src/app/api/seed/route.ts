@@ -77,13 +77,10 @@ export async function GET() {
       await prisma.job.create({
         data: {
           title: 'Software Development Engineer I',
-          description: 'Join our core infrastructure and systems engineering team.',
-          requirements: 'B.Tech/BE in CS/IT, strong understanding of Data Structures and Algorithms.',
-          salary: 32.0,
+          description: 'Join our core infrastructure and systems engineering team. Requirements: B.Tech/BE in CS/IT, strong understanding of Data Structures and Algorithms.',
+          salaryLpa: 32.0,
           location: 'Bangalore / Hybrid',
-          minCgpa: 7.5,
-          maxBacklogs: 0,
-          allowedBranches: 'CSE, IT, ECE',
+          eligibilityCgpa: 7.5,
           companyId: google.id,
         }
       });
