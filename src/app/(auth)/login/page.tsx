@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { GraduationCap, Briefcase, Shield, Mail, Lock, ArrowRight, User } from "lucide-react";
+import { GraduationCap, Briefcase, Shield, Mail, Lock, ArrowRight, User, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -181,13 +182,25 @@ export default function LoginPage() {
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-champagne/70 group-focus-within:text-champagne transition-colors" />
                 <input 
-                  className="w-full bg-[#1d1b1a]/50 border border-white/10 rounded-lg py-4 pl-12 pr-4 text-champagne font-headline placeholder:text-[#979085]/40 focus:outline-none focus:border-champagne/40 focus:bg-[#1d1b1a]/80 transition-all duration-300" 
+                  className="w-full bg-[#1d1b1a]/50 border border-white/10 rounded-lg py-4 pl-12 pr-12 text-champagne font-headline placeholder:text-[#979085]/40 focus:outline-none focus:border-champagne/40 focus:bg-[#1d1b1a]/80 transition-all duration-300" 
                   id="password" 
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••" 
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-champagne transition-colors p-1"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
 
