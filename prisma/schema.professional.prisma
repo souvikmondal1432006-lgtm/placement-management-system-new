@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  RECRUITER
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW
+  SELECTED
+  REJECTED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(STUDENT)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  student       Student?
+  company       Company?       @relation("RecruiterCompany")
+  notifications Notification[]
+  auditLogs     AuditLog[]     @relation("ActorLogs")
+
+  @@map("user")
+}
+
+model Student {
+  id         String   @id @default(cuid())
+  userId     String   @unique @map("user_id")
+  department String
+  cgpa       Float
+  phone      String?
+  skills     String?  @db.Text
+  resumeUrl  String?  @map("resume_url")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  applications Application[]
+  offers       Offer[]
+
+  @@map("student")
+}
+
+model Company {
+  id             String   @id @default(cuid())
+  recruiterId    String   @unique @map("recruiter_id")
+  name           String
+  location       String
+  description    String?  @db.Text
+  packageOffered String?  @map("package_offered")
+  logoUrl        String?  @map("logo_url")
+
+  recruiter User @relation("RecruiterCompany", fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  jobs   Job[]
+  offers Offer[]
+
+  @@map("company")
+}
+
+model Job {
+  id              String   @id @default(cuid())
+  companyId       String   @map("company_id")
+  title           String
+  description     String   @db.Text
+  eligibilityCgpa Float    @map("eligibility_cgpa")
+  salaryLpa       Float?   @map("salary_lpa")
+  location        String
+  deadline        DateTime
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  applications Application[]
+  offers       Offer[]
+
+  @@map("job")
+}
+
+model Application {
+  id        String            @id @default(cuid())
+  studentId String            @map("student_id")
+  jobId     String            @map("job_id")
+  status    ApplicationStatus @default(APPLIED)
+  appliedAt DateTime          @default(now()) @map("applied_at")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, jobId])
+  @@map("application")
+}
+
+model Offer {
+  id          String      @id @default(cuid())
+  studentId   String      @map("student_id")
+  companyId   String      @map("company_id")
+  jobId       String      @map("job_id")
+  offerStatus OfferStatus @default(PENDING) @map("offer_status")
+  offerDate   DateTime    @default(now()) @map("offer_date")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("offer")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String   @map("actor_id")
+  action    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User @relation("ActorLogs", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}

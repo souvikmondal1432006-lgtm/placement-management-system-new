@@ -1,0 +1,235 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { GraduationCap, Briefcase, Shield, Mail, Lock, ArrowRight, User } from "lucide-react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+
+export default function LoginPage() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [role, setRole] = useState<"STUDENT" | "RECRUITER" | "ADMIN">("STUDENT");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    if (!email || !password || (!isLogin && !name)) {
+      setError("Please fill in all required fields.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (!isLogin) {
+        // Registration Flow
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, role }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || "Failed to register.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Login Flow (executes for both Login and successful Registration)
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        setError("Security check failed. Please verify credentials.");
+        setLoading(false);
+      } else {
+        if (role === "STUDENT") router.push("/student/dashboard");
+        else if (role === "RECRUITER") router.push("/recruiter/dashboard");
+        else router.push("/admin/dashboard");
+        router.refresh();
+      }
+    } catch (err) {
+      setError("An unexpected terminal error occurred.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen font-headline text-white selection:bg-champagne selection:text-black bg-[#0A0A0C] overflow-hidden relative">
+      {/* Background Decorative Element */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ background: 'radial-gradient(circle at 50% -20%, rgba(247, 231, 206, 0.08) 0%, rgba(10, 10, 12, 0) 70%)'}}>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-champagne/[0.02] blur-[120px] rounded-full"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#2b2a28]/[0.1] blur-[100px] rounded-full"></div>
+      </div>
+
+      {/* Main Login Container */}
+      <main className="relative z-10 w-full max-w-[480px] px-8">
+        {/* Branding Header */}
+        <header className="flex flex-col items-center mb-10 text-center">
+          <div className="mb-4">
+            <Link href="/" className="font-sans text-5xl text-champagne tracking-[0.3em] uppercase font-bold">PLACIFY</Link>
+          </div>
+          <p className="font-headline text-[12px] text-[#979085] uppercase tracking-[0.2em] font-bold">Placement Management Architecture</p>
+        </header>
+
+        {/* Glassmorphic Login Card */}
+        <section className="bg-[#0f0e0c]/70 backdrop-blur-[20px] border border-champagne/10 p-10 md:p-12 rounded-xl shadow-2xl relative">
+          <div className="mb-8 text-center flex flex-col items-center">
+            <div className="flex bg-white/5 border border-white/10 rounded-full p-1 mb-6">
+              <button 
+                onClick={() => { setIsLogin(true); setError(null); }}
+                className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${isLogin ? 'bg-champagne text-black' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Sign In
+              </button>
+              <button 
+                onClick={() => { setIsLogin(false); setError(null); }}
+                className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${!isLogin ? 'bg-champagne text-black' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Register
+              </button>
+            </div>
+            <h2 className="font-sans text-3xl font-bold tracking-tight text-champagne mb-2">
+              {isLogin ? "Executive Login" : "Create Account"}
+            </h2>
+            <p className="font-headline text-[13px] text-[#979085]">
+              {isLogin ? "Secure access to the intelligence mandate." : "Initialize a new intelligence profile."}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col space-y-6">
+            {/* Role Selection Tabs */}
+            <div className="flex p-1 bg-white/5 rounded-xl border border-white/10">
+              {(["STUDENT", "RECRUITER", "ADMIN"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={`flex-1 flex flex-col items-center py-3 rounded-lg transition-all duration-300 relative ${role === r ? "bg-champagne/10 text-champagne shadow-xl border border-champagne/20" : "text-zinc-500 hover:text-zinc-300"}`}
+                >
+                  <span className="mb-1">
+                    {r === "STUDENT" ? <GraduationCap className="w-4 h-4" /> : r === "RECRUITER" ? <Briefcase className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{r.charAt(0) + r.slice(1).toLowerCase()}</span>
+                </button>
+              ))}
+            </div>
+
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3"
+              >
+                <div className="w-1 h-1 rounded-full bg-red-400 animate-pulse"></div>
+                {error}
+              </motion.div>
+            )}
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="font-headline text-[12px] font-bold text-[#c7c6c4] uppercase tracking-widest" htmlFor="name">Full Name</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-champagne/70 group-focus-within:text-champagne transition-colors" />
+                  <input 
+                    className="w-full bg-[#1d1b1a]/50 border border-white/10 rounded-lg py-4 pl-12 pr-4 text-champagne font-headline placeholder:text-[#979085]/40 focus:outline-none focus:border-champagne/40 focus:bg-[#1d1b1a]/80 transition-all duration-300" 
+                    id="name" 
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter full name" 
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Email Input */}
+            <div className="space-y-2">
+              <label className="font-headline text-[12px] font-bold text-[#c7c6c4] uppercase tracking-widest" htmlFor="email">Email Address</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-champagne/70 group-focus-within:text-champagne transition-colors" />
+                <input 
+                  className="w-full bg-[#1d1b1a]/50 border border-white/10 rounded-lg py-4 pl-12 pr-4 text-champagne font-headline placeholder:text-[#979085]/40 focus:outline-none focus:border-champagne/40 focus:bg-[#1d1b1a]/80 transition-all duration-300" 
+                  id="email" 
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@executive.com" 
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="font-headline text-[12px] font-bold text-[#c7c6c4] uppercase tracking-widest" htmlFor="password">Password</label>
+                {isLogin && <Link className="font-headline text-[13px] text-champagne/60 hover:text-champagne transition-colors" href="#">Forgot Password?</Link>}
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-champagne/70 group-focus-within:text-champagne transition-colors" />
+                <input 
+                  className="w-full bg-[#1d1b1a]/50 border border-white/10 rounded-lg py-4 pl-12 pr-4 text-champagne font-headline placeholder:text-[#979085]/40 focus:outline-none focus:border-champagne/40 focus:bg-[#1d1b1a]/80 transition-all duration-300" 
+                  id="password" 
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••" 
+                />
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <div className="pt-4">
+              <button 
+                disabled={loading}
+                className="w-full bg-champagne hover:bg-[#fcf1e1] text-[#0A0A0C] font-sans font-bold text-[16px] py-4 rounded-lg tracking-[0.1em] uppercase shadow-lg shadow-champagne/5 transition-all duration-500 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50" 
+                type="submit"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-[#0A0A0C]/30 border-t-[#0A0A0C] rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <span>{isLogin ? "Sign In" : "Initialize Profile"}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* Footer Meta */}
+        <footer className="mt-10 text-center space-y-4 relative z-10">
+          <div className="flex justify-center items-center space-x-6">
+            <Link className="font-headline text-[13px] text-[#979085] hover:text-white transition-colors uppercase tracking-widest" href="#">Privacy Protocol</Link>
+            <span className="w-1 h-1 bg-[#979085]/20 rounded-full"></span>
+            <Link className="font-headline text-[13px] text-[#979085] hover:text-white transition-colors uppercase tracking-widest" href="#">System Status</Link>
+          </div>
+          <p className="font-headline text-[11px] text-[#979085]/40 uppercase tracking-[0.2em]">© 2026 PLACIFY ARTIFACTS INC.</p>
+        </footer>
+      </main>
+
+      {/* Ambient Image Fragment */}
+      <div className="fixed bottom-0 right-0 w-[600px] h-[600px] opacity-10 pointer-events-none mix-blend-screen z-0">
+        <img 
+          className="w-full h-full object-cover" 
+          alt="Placify texture" 
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfuQ2sz5zhmZfz6eiMrsD5tLtsBwZIzxSeeN9groGnYAqyJpMWeguh1N_sYMooLKn4G6cHL8TRxVumzSMf0ZaEsYOlviGh7Kchg2HeVuXWHxc6PJfiR4ZsiAlr5lkDNdc5MfOo7ja6I8Yu1kzovp6NOmoaJ4jZ8LQcgfeLhrCgVdKYkqedXiqTSTywjBn4k_CZZnr8CK-AvaKxV2SbT5quhQlYjxNcUoUZ1FxRxrFsV9YB99Zp3bExZCZaYkMu1MVkXb5GaBlaoSjg" 
+        />
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  RECRUITER
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW
+  SELECTED
+  REJECTED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(STUDENT)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  student       Student?
+  company       Company?       @relation("RecruiterCompany")
+  notifications Notification[]
+  auditLogs     AuditLog[]     @relation("ActorLogs")
+
+  @@map("user")
+}
+
+model Student {
+  id         Int      @id @default(autoincrement()) @map("student_id")
+  userId     Int?     @unique @map("user_id")
+  name       String?  @db.VarChar(50)
+  department String?  @db.VarChar(50)
+  cgpa       Decimal? @db.Decimal(3, 2)
+  email      String?  @db.VarChar(50)
+  phone      String?  @db.VarChar(15)
+  skills     String?  @db.Text
+  resumeUrl  String?  @map("resume_url")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  applications Application[]
+  offers       Offer[]
+
+  @@map("student")
+}
+
+model Company {
+  id             Int      @id @default(autoincrement()) @map("company_id")
+  recruiterId    Int?     @unique @map("recruiter_id")
+  name           String?  @map("company_name") @db.VarChar(50)
+  location       String?  @db.VarChar(50)
+  description    String?  @db.Text
+  packageOffered Decimal? @map("package") @db.Decimal(10, 2)
+  logoUrl        String?  @map("logo_url")
+
+  recruiter User? @relation("RecruiterCompany", fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  jobs   Job[]
+  offers Offer[]
+
+  @@map("company")
+}
+
+model Job {
+  id              Int      @id @default(autoincrement()) @map("job_id")
+  companyId       Int?     @map("company_id")
+  title           String?  @map("role") @db.VarChar(50)
+  description     String?  @db.Text
+  eligibilityCgpa Float?   @map("eligibility_cgpa")
+  salaryLpa       Decimal? @map("salary") @db.Decimal(10, 2)
+  location        String?
+  deadline        DateTime?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  applications Application[]
+  offers       Offer[]
+
+  @@map("job")
+}
+
+model Application {
+  id        Int               @id @default(autoincrement()) @map("application_id")
+  studentId Int?              @map("student_id")
+  jobId     Int?              @map("job_id")
+  status    ApplicationStatus @default(APPLIED)
+  appliedAt DateTime          @default(now()) @map("applied_at")
+
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  job     Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, jobId])
+  @@map("application")
+}
+
+model Offer {
+  id          Int         @id @default(autoincrement()) @map("offer_id")
+  studentId   Int?        @map("student_id")
+  companyId   Int?        @map("company_id")
+  jobId       Int?        @map("job_id")
+  package     Decimal?    @db.Decimal(10, 2)
+  offerStatus OfferStatus @default(PENDING) @map("offer_status")
+  offerDate   DateTime    @default(now()) @map("offer_date")
+
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  job     Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("offer")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  actorId   Int      @map("actor_id")
+  action    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User @relation("ActorLogs", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
